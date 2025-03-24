@@ -33,7 +33,7 @@ func NewConfig() (*Config, error) {
 	salt := "random_salt_123"
 	cfg.Salt = salt
 
-	ParsePlags(cfg)
+	ParseFlags(cfg)
 
 	return cfg, nil
 }
