@@ -12,7 +12,7 @@ func ParseFlags(cfg *Config) {
 	envAccrual := os.Getenv("ACCRUAL_SYSTEM_ADDRESS")
 
 	// Устанавливаем флаги с учётом значений из окружения
-	flag.StringVar(&cfg.FlagAddress, "a", envOrDefault(envAddress, ":8000"), "address and port to run server")
+	flag.StringVar(&cfg.FlagAddress, "a", envOrDefault(envAddress, ":8080"), "address and port to run server")
 	flag.StringVar(&cfg.FlagForDB, "d", envOrDefault(envDB, ""), "database conn link")
 	flag.StringVar(&cfg.FlagAddressAS, "r", envOrDefault(envAccrual, "http://localhost:8080"), "address accrual system")
 
