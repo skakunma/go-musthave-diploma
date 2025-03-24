@@ -18,7 +18,7 @@ type Config struct {
 
 func NewConfig() (*Config, error) {
 	cfg := &Config{}
-	store, err := storage.CreatePostgreStorage("host=localhost user=postgres password=example dbname=diplomka sslmode=disable")
+	store, err := storage.CreatePostgreStorage(cfg.FlagForDB)
 	if err != nil {
 		return nil, err
 	}
