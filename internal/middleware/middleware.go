@@ -2,6 +2,7 @@ package middleware
 
 import (
 	"net/http"
+	"strings"
 
 	"github.com/gin-gonic/gin"
 	"github.com/golang-jwt/jwt"
@@ -17,27 +18,47 @@ var authPaths = map[string]struct{}{
 
 func AuthMiddleware(cfg *config.Config) gin.HandlerFunc {
 	return func(c *gin.Context) {
+		// Проверяем, защищен ли маршрут
 		if _, exist := authPaths[c.Request.URL.Path]; exist {
-			jwtToken, err := c.Cookie("jwt")
+			var jwtToken string
+			var err error
+
+			// Пробуем взять токен из cookie
+			jwtToken, err = c.Cookie("jwt")
+
+			// Если в cookie нет токена, пробуем из заголовка Authorization
 			if err != nil || jwtToken == "" {
-				c.JSON(http.StatusUnauthorized, "You are not authorized")
+				authHeader := c.GetHeader("Authorization")
+				if authHeader != "" {
+					parts := strings.Split(authHeader, " ")
+					if len(parts) == 2 && (parts[0] == "Bearer" || parts[0] == "Token") {
+						jwtToken = parts[1]
+					}
+				}
+			}
+
+			// Если токен так и не нашли — отправляем 401
+			if jwtToken == "" {
+				c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "You are not authorized"})
 				return
 			}
+
+			// Разбираем токен
 			claims := &jwtauth.Claims{}
 			token, err := jwt.ParseWithClaims(jwtToken, claims, func(t *jwt.Token) (interface{}, error) {
 				return []byte(jwtauth.SecretKEY), nil
 			})
-			if err != nil {
+
+			// Проверяем валидность токена
+			if err != nil || !token.Valid {
 				c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "Недействительный токен"})
 				return
 			}
-			if !token.Valid {
-				c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "Невалидный токен"})
-				return
-			}
+
+			// Сохраняем информацию о пользователе в контекст
 			c.Set("user", claims)
-			c.Next()
 		}
+
 		c.Next()
 	}
 }
