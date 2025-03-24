@@ -18,6 +18,7 @@ type Config struct {
 
 func NewConfig() (*Config, error) {
 	cfg := &Config{}
+	ParseFlags(cfg)
 	store, err := storage.CreatePostgreStorage(cfg.FlagForDB)
 	if err != nil {
 		return nil, err
@@ -32,8 +33,6 @@ func NewConfig() (*Config, error) {
 
 	salt := "random_salt_123"
 	cfg.Salt = salt
-
-	ParseFlags(cfg)
 
 	return cfg, nil
 }
