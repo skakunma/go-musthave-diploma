@@ -20,6 +20,11 @@ type Order struct {
 	Uploaded time.Time `json:"uploaded_at"`
 }
 
+type Balance struct {
+	Current   float64 `json:"current"`
+	Withdrawn int     `json:"withdrawn"`
+}
+
 func CreatePostgreStorage(dsn string) (*PostgresStorage, error) {
 	db, err := sql.Open("pgx", dsn)
 	if err != nil {
@@ -38,16 +43,17 @@ func CreatePostgreStorage(dsn string) (*PostgresStorage, error) {
 
 func (s *PostgresStorage) createTables() error {
 	query := `
-	CREATE TABLE IF NOT EXISTS users (
-		id SERIAL PRIMARY KEY,
-		login varchar(255) UNIQUE NOT NULL,
-		password varchar(255) NOT NULL
-	);
-	
+CREATE TABLE IF NOT EXISTS users (
+    id SERIAL PRIMARY KEY,
+    login VARCHAR(255) UNIQUE NOT NULL,
+    password TEXT NOT NULL,
+    balance DECIMAL(10,2) NOT NULL DEFAULT 0.00 CHECK (balance >= 0),
+    withdrawn INT NOT NULL DEFAULT 0 CHECK (withdrawn >= 0)
+);	
 	CREATE TABLE IF NOT EXISTS orders (
 		id SERIAL PRIMARY KEY,
 		author_id INT NOT NULL,
-		order_num BIGINT UNIQUE NOT NULL,
+		order_num TEXT UNIQUE NOT NULL,
         uploaded_at TIMESTAMP WITH TIME ZONE NOT NULL,
 		FOREIGN KEY (author_id) REFERENCES users(id) ON DELETE CASCADE
 	);
@@ -103,7 +109,7 @@ func (s *PostgresStorage) GetID(ctx context.Context, login string) (int, error) 
 	return id, nil
 }
 
-func (s *PostgresStorage) IsOrderExists(ctx context.Context, orderID int) (bool, error) {
+func (s *PostgresStorage) IsOrderExists(ctx context.Context, orderID string) (bool, error) {
 	var id int
 	err := s.db.QueryRowContext(ctx, "SELECT id FROM orders WHERE order_num = $1", orderID).Scan(&id)
 	if err != nil {
@@ -116,7 +122,7 @@ func (s *PostgresStorage) IsOrderExists(ctx context.Context, orderID int) (bool,
 
 }
 
-func (s *PostgresStorage) GetAuthorOrder(ctx context.Context, orderID int) (int, error) {
+func (s *PostgresStorage) GetAuthorOrder(ctx context.Context, orderID string) (int, error) {
 	var authorID int
 	err := s.db.QueryRowContext(ctx, "SELECT author_id FROM orders WHERE order_num = $1", orderID).Scan(&authorID)
 	if err != nil {
@@ -125,7 +131,7 @@ func (s *PostgresStorage) GetAuthorOrder(ctx context.Context, orderID int) (int,
 	return authorID, nil
 }
 
-func (s *PostgresStorage) CreateOrder(ctx context.Context, authorID int, orderID int, uploaded_at time.Time) error {
+func (s *PostgresStorage) CreateOrder(ctx context.Context, authorID int, orderID string, uploaded_at time.Time) error {
 	_, err := s.db.ExecContext(ctx, "INSERT INTO orders (author_id, order_num, uploaded_at) VALUES ($1, $2, $3)", authorID, orderID, uploaded_at)
 	if err != nil {
 		return err
@@ -157,4 +163,17 @@ func (s *PostgresStorage) GetOrdersFromUser(ctx context.Context, userID int) ([]
 	}
 
 	return orders, nil
+}
+
+func (s *PostgresStorage) GetBalance(ctx context.Context, userID int) (*Balance, error) {
+	var (
+		balance   float64
+		withdrawn int
+	)
+	err := s.db.QueryRowContext(ctx, "SELECT  balance, withdrawn  FROM users WHERE id = $1", userID).Scan(&balance, &withdrawn)
+	if err != nil {
+		return nil, err
+	}
+	return &Balance{Current: balance, Withdrawn: withdrawn}, nil
+
 }

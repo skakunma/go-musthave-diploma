@@ -14,6 +14,7 @@ var authPaths = map[string]struct{}{
 	"/api/user/orders":           {},
 	"/api/user/profile":          {},
 	"/api/user/balance/withdraw": {},
+	"/api/user/balance":          {},
 }
 
 func AuthMiddleware(cfg *config.Config) gin.HandlerFunc {

@@ -6,9 +6,9 @@ import (
 	"fmt"
 	"io"
 	"net/http"
-	"strconv"
 	"strings"
 	"time"
+	"unicode"
 
 	"github.com/gin-gonic/gin"
 	"github.com/skakunma/go-musthave-diploma-tpl/internal/config"
@@ -21,14 +21,16 @@ type OrderInfo struct {
 	Accrual float64 `json:"accrual,omitempty"` // omitempty, чтобы не включать, если нет начислений
 }
 
-func isValidLuhn(number int) bool {
-	str := strconv.Itoa(number)
-	n := len(str)
+func isValidLuhn(number string) bool {
 	sum := 0
 	isSecond := false
 
-	for i := n - 1; i >= 0; i-- {
-		digit := int(str[i] - '0')
+	for i := len(number) - 1; i >= 0; i-- {
+		if !unicode.IsDigit(rune(number[i])) {
+			return false
+		}
+
+		digit := int(number[i] - '0')
 
 		if isSecond {
 			digit *= 2
@@ -55,11 +57,8 @@ func CreateOrder(c *gin.Context, cfg *config.Config) {
 		c.JSON(http.StatusBadRequest, "Problem with parsing body")
 		return
 	}
-	idOrder, err := strconv.Atoi(string(body))
-	if err != nil {
-		cfg.Sugar.Error(err)
-		c.JSON(http.StatusUnprocessableEntity, "Order is cat'n be int")
-	}
+	idOrder := string(body)
+
 	if !isValidLuhn(idOrder) {
 		c.JSON(http.StatusUnprocessableEntity, "Order is not Lun")
 		return
@@ -121,7 +120,9 @@ func GetOrders(c *gin.Context, cfg *config.Config) {
 
 	// Расширяем заказы данными о начислениях
 	var responseOrders []map[string]interface{}
+
 	for _, order := range orders {
+		fmt.Println(order.Number)
 		orderInfo, err := GetInfoAboutOrder(ctx, cfg, order.Number)
 		if err != nil {
 			cfg.Sugar.Warnf("Не удалось получить информацию о заказе %s: %v", order, err)
