@@ -105,7 +105,7 @@ func CreateOrder(c *gin.Context, cfg *config.Config) {
 		c.JSON(http.StatusInternalServerError, "error")
 		return
 	}
-	if orderInfo.Accrual != 0 {
+	if orderInfo != nil && orderInfo.Accrual != 0 {
 		err = cfg.Store.AddBalance(ctx, claims.UserID, orderInfo.Accrual)
 		if err != nil {
 			cfg.Sugar.Error(err)
