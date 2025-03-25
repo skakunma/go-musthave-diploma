@@ -79,12 +79,15 @@ CREATE TABLE IF NOT EXISTS withdrawals (
 }
 
 func (s *PostgresStorage) CreateUser(ctx context.Context, login string, password string) error {
-	_, err := s.db.QueryContext(ctx, `
+	rows, err := s.db.QueryContext(ctx, `
 	INSERT INTO users (login, password)
 	VALUES ($1, $2)
 	`, login, password)
 	if err != nil {
 		return err
+	}
+	if rows.Err() != nil {
+		return rows.Err()
 	}
 	return nil
 }
@@ -147,8 +150,8 @@ func (s *PostgresStorage) GetAuthorOrder(ctx context.Context, orderID string) (i
 	return authorID, nil
 }
 
-func (s *PostgresStorage) CreateOrder(ctx context.Context, authorID int, orderID string, uploaded_at time.Time) error {
-	_, err := s.db.ExecContext(ctx, "INSERT INTO orders (author_id, order_num, uploaded_at) VALUES ($1, $2, $3)", authorID, orderID, uploaded_at)
+func (s *PostgresStorage) CreateOrder(ctx context.Context, authorID int, orderID string, uploaded time.Time) error {
+	_, err := s.db.ExecContext(ctx, "INSERT INTO orders (author_id, order_num, uploaded_at) VALUES ($1, $2, $3)", authorID, orderID, uploaded)
 	if err != nil {
 		return err
 	}
