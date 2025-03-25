@@ -152,7 +152,7 @@ func GetOrders(c *gin.Context, cfg *config.Config) {
 }
 
 func GetInfoAboutOrder(ctx context.Context, cfg *config.Config, orderID string) (*OrderInfo, error) {
-	address := fmt.Sprintf("%v/api/orders/%d", cfg.FlagAddressAS, orderID)
+	address := fmt.Sprintf("%v/api/orders/%s", cfg.FlagAddressAS, orderID)
 
 	fmt.Println(address)
 	// HTTP-клиент с таймаутом
