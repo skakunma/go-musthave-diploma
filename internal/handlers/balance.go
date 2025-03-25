@@ -13,8 +13,8 @@ import (
 )
 
 type WithdrawReq struct {
-	Order string `json:"order"`
-	Sum   int    `json:"sum"`
+	Order string  `json:"order"`
+	Sum   float64 `json:"sum"`
 }
 
 func GetBalance(c *gin.Context, cfg *config.Config) {

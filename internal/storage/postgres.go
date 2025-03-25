@@ -50,7 +50,7 @@ CREATE TABLE IF NOT EXISTS users (
     login VARCHAR(255) UNIQUE NOT NULL,
     password TEXT NOT NULL,
     balance DECIMAL(10,2) NOT NULL DEFAULT 0.00 CHECK (balance >= 0),
-    withdrawn INT NOT NULL DEFAULT 0 CHECK (withdrawn >= 0)
+    withdrawn DECIMAL(10,2) NOT NULL DEFAULT 0 CHECK (withdrawn >= 0)
 );	
 	CREATE TABLE IF NOT EXISTS orders (
 		id SERIAL PRIMARY KEY,
@@ -191,7 +191,7 @@ func (s *PostgresStorage) AddBalance(ctx context.Context, userID int, accrual fl
 	return nil
 }
 
-func (s *PostgresStorage) WithdrawBalance(ctx context.Context, userID int, sum int) error {
+func (s *PostgresStorage) WithdrawBalance(ctx context.Context, userID int, sum float64) error {
 	_, err := s.db.ExecContext(ctx,
 		"UPDATE users SET balance = balance - $1, withdrawn = withdrawn + $1 WHERE id = $2",
 		sum, userID)
