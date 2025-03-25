@@ -24,7 +24,7 @@ type Order struct {
 
 type Balance struct {
 	Current   float64 `json:"current"`
-	Withdrawn int     `json:"withdrawn"`
+	Withdrawn float64 `json:"withdrawn"`
 }
 
 func CreatePostgreStorage(dsn string) (*PostgresStorage, error) {
@@ -170,7 +170,7 @@ func (s *PostgresStorage) GetOrdersFromUser(ctx context.Context, userID int) ([]
 func (s *PostgresStorage) GetBalance(ctx context.Context, userID int) (*Balance, error) {
 	var (
 		balance   float64
-		withdrawn int
+		withdrawn float64
 	)
 	err := s.db.QueryRowContext(ctx, "SELECT  balance, withdrawn  FROM users WHERE id = $1", userID).Scan(&balance, &withdrawn)
 	if err != nil {
