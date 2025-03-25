@@ -14,5 +14,5 @@ func SetupRouter(server *gin.Engine, cfg *config.Config) {
 	server.GET("/api/user/orders", func(c *gin.Context) { GetOrders(c, cfg) })
 	server.GET("/api/user/balance", func(c *gin.Context) { GetBalance(c, cfg) })
 	server.POST("/api/user/balance/withdraw", func(c *gin.Context) { WithdrawBalance(c, cfg) })
-	server.GET("/api/user/withdrawals")
+	server.GET("/api/user/withdrawals", func(c *gin.Context) { GetWithdrawals(c, cfg) })
 }

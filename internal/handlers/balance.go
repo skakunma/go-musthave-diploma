@@ -10,6 +10,7 @@ import (
 	"io"
 	"net/http"
 	"strings"
+	"time"
 )
 
 type WithdrawReq struct {
@@ -75,4 +76,30 @@ func WithdrawBalance(c *gin.Context, cfg *config.Config) {
 		c.JSON(http.StatusInternalServerError, "Error")
 		return
 	}
+	err = cfg.Store.CreateWithdraw(ctx, claims.UserID, WithdrawInfo.Order, WithdrawInfo.Sum, time.Now())
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, "Error")
+		return
+	}
+	c.JSON(http.StatusOK, "Списание прошло успешно!")
+}
+
+func GetWithdrawals(c *gin.Context, cfg *config.Config) {
+	user, exist := c.Get("user")
+	if !exist {
+		c.JSON(http.StatusUnauthorized, "You are not auth")
+		return
+	}
+	claims := user.(*jwt.Claims)
+	ctx := c.Request.Context()
+	withdrawls, err := cfg.Store.GetWithdraws(ctx, claims.UserID)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, "Error")
+	}
+	if len(withdrawls) == 0 {
+		c.JSON(http.StatusNoContent, "You have not any withdrawls")
+		return
+	}
+
+	c.JSON(http.StatusOK, withdrawls)
 }

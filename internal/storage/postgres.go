@@ -27,6 +27,12 @@ type Balance struct {
 	Withdrawn float64 `json:"withdrawn"`
 }
 
+type Withdraw struct {
+	OrderNum  string    `json:"order"`
+	Sum       float64   `json:"sum"`
+	Processed time.Time `json:"processed_at"`
+}
+
 func CreatePostgreStorage(dsn string) (*PostgresStorage, error) {
 	db, err := sql.Open("pgx", dsn)
 	if err != nil {
@@ -59,7 +65,15 @@ CREATE TABLE IF NOT EXISTS users (
         uploaded_at TIMESTAMP WITH TIME ZONE NOT NULL,
 		FOREIGN KEY (author_id) REFERENCES users(id) ON DELETE CASCADE
 	);
-	`
+
+CREATE TABLE IF NOT EXISTS withdrawals (
+    id SERIAL PRIMARY KEY,
+    author_id INT NOT NULL,
+    order_num TEXT UNIQUE NOT NULL,
+    quantity DECIMAL(10,2) NOT NULL,
+    processed_at TIMESTAMP WITH TIME ZONE NOT NULL,
+    FOREIGN KEY (author_id) REFERENCES users(id) ON DELETE CASCADE   )
+;`
 	_, err := s.db.Exec(query)
 	return err
 }
@@ -201,8 +215,40 @@ func (s *PostgresStorage) WithdrawBalance(ctx context.Context, userID int, sum f
 			return ErrBalanceZero
 		}
 
-		// Логируем и возвращаем ошибку
 		return err
 	}
 	return nil
+}
+
+func (s *PostgresStorage) CreateWithdraw(ctx context.Context, userID int, orderID string, sum float64, processed time.Time) error {
+	err := s.db.QueryRowContext(ctx, "INSERT INTO withdrawals(author_id, order_num, quantity, processed_at) VALUES ($1, $2, $3, $4)", userID, orderID, sum, processed)
+	if err != nil {
+		return err.Err()
+	}
+	return nil
+}
+
+func (s *PostgresStorage) GetWithdraws(ctx context.Context, userID int) ([]Withdraw, error) {
+	var orders []Withdraw
+
+	rows, err := s.db.QueryContext(ctx, "SELECT order_num, quantity, processed_at FROM withdrawals WHERE author_id = $1", userID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	for rows.Next() {
+		var order Withdraw
+		err := rows.Scan(&order.OrderNum, &order.Sum, &order.Processed)
+		if err != nil {
+			return nil, err
+		}
+		orders = append(orders, order)
+	}
+
+	if err = rows.Err(); err != nil {
+		return nil, err
+	}
+
+	return orders, nil
 }
