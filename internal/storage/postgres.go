@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"errors"
+	"fmt"
 	"time"
 
 	_ "github.com/jackc/pgx/v5/stdlib" // Импорт драйвера для работы с PostgreSQL
@@ -176,4 +177,15 @@ func (s *PostgresStorage) GetBalance(ctx context.Context, userID int) (*Balance,
 	}
 	return &Balance{Current: balance, Withdrawn: withdrawn}, nil
 
+}
+
+func (s *PostgresStorage) AddBalance(ctx context.Context, userID int, accrual float64) error {
+	query := `UPDATE users SET balance = balance + $1 WHERE id = $2`
+
+	_, err := s.db.ExecContext(ctx, query, accrual, userID)
+	if err != nil {
+		return fmt.Errorf("не удалось обновить баланс пользователя %d: %w", userID, err)
+	}
+
+	return nil
 }
