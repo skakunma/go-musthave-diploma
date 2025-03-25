@@ -14,7 +14,7 @@ var (
 )
 
 type Order struct {
-	Number   int       `json:"number"`
+	Number   string    `json:"number"`
 	Status   string    `json:"status"`
 	Accrual  float64   `json:"accrual,omitempty"`
 	Uploaded time.Time `json:"uploaded_at"`
@@ -143,7 +143,7 @@ func (s *PostgresStorage) GetOrdersFromUser(ctx context.Context, userID int) ([]
 
 	for rows.Next() {
 		var (
-			orderNum int
+			orderNum string
 			uploaded time.Time
 		)
 		if err := rows.Scan(&orderNum, &uploaded); err != nil {
