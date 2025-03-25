@@ -12,6 +12,7 @@ import (
 
 var (
 	ErrUserNotFound = errors.New("пользователь не найден")
+	ErrBalanceZero  = errors.New("не хватает баланса, чтобы списать средства")
 )
 
 type Order struct {
@@ -187,5 +188,21 @@ func (s *PostgresStorage) AddBalance(ctx context.Context, userID int, accrual fl
 		return fmt.Errorf("не удалось обновить баланс пользователя %d: %w", userID, err)
 	}
 
+	return nil
+}
+
+func (s *PostgresStorage) WithdrawBalance(ctx context.Context, userID int, sum int) error {
+	_, err := s.db.ExecContext(ctx,
+		"UPDATE users SET balance = balance - $1, withdrawn = withdrawn + $1 WHERE id = $2",
+		sum, userID)
+
+	if err != nil {
+		if errors.Is(err, sql.ErrTxDone) {
+			return ErrBalanceZero
+		}
+
+		// Логируем и возвращаем ошибку
+		return err
+	}
 	return nil
 }
