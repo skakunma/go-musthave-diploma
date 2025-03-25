@@ -151,7 +151,7 @@ func GetOrders(c *gin.Context, cfg *config.Config) {
 	c.JSON(http.StatusOK, responseOrders)
 }
 
-func GetInfoAboutOrder(ctx context.Context, cfg *config.Config, orderID int) (*OrderInfo, error) {
+func GetInfoAboutOrder(ctx context.Context, cfg *config.Config, orderID string) (*OrderInfo, error) {
 	address := fmt.Sprintf("%v/api/orders/%d", cfg.FlagAddressAS, orderID)
 
 	fmt.Println(address)
