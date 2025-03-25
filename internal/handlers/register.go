@@ -3,6 +3,8 @@ package handlers
 import (
 	"crypto/sha256"
 	"encoding/hex"
+	"fmt"
+	jwtauth "github.com/skakunma/go-musthave-diploma-tpl/internal/jwt"
 	"net/http"
 	"strings"
 
@@ -42,6 +44,7 @@ func RegisterHandler(c *gin.Context, cfg *config.Config) {
 	}
 
 	hashPassword := HashPassword(cfg, infoUser.Password)
+	password := infoUser.Password
 	infoUser.Password = hashPassword
 
 	ctx := c.Request.Context()
@@ -63,5 +66,26 @@ func RegisterHandler(c *gin.Context, cfg *config.Config) {
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{"message": "User created successfully"})
+	id, err := cfg.Store.GetID(ctx, infoUser.Login)
+
+	if err != nil {
+		cfg.Sugar.Error(err)
+		c.JSON(http.StatusBadGateway, "Problem with service")
+		return
+	}
+
+	token, err := jwtauth.BuildJWTString(id)
+
+	if err != nil {
+		cfg.Sugar.Error(err)
+		c.JSON(http.StatusBadGateway, "Problem With Service")
+		return
+	}
+
+	c.SetCookie("jwt", token, 3600, "/", "", false, false)
+	jwtHeader := fmt.Sprintf("Bearer %v", token)
+
+	c.Writer.Header().Set("Authorization", jwtHeader)
+
+	c.JSON(http.StatusOK, gin.H{"login": infoUser.Login, "password": password})
 }
