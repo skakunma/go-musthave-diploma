@@ -95,6 +95,7 @@ func GetWithdrawals(c *gin.Context, cfg *config.Config) {
 	withdrawls, err := cfg.Store.GetWithdraws(ctx, claims.UserID)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, "Error")
+		return
 	}
 	if len(withdrawls) == 0 {
 		c.JSON(http.StatusNoContent, "You have not any withdrawls")
