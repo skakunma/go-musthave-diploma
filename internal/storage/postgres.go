@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"errors"
+	"time"
 
 	_ "github.com/jackc/pgx/v5/stdlib" // Импорт драйвера для работы с PostgreSQL
 )
@@ -11,6 +12,13 @@ import (
 var (
 	ErrUserNotFound = errors.New("пользователь не найден")
 )
+
+type Order struct {
+	Number   int       `json:"number"`
+	Status   string    `json:"status"`
+	Accrual  float64   `json:"accrual,omitempty"`
+	Uploaded time.Time `json:"uploaded_at"`
+}
 
 func CreatePostgreStorage(dsn string) (*PostgresStorage, error) {
 	db, err := sql.Open("pgx", dsn)
@@ -40,6 +48,7 @@ func (s *PostgresStorage) createTables() error {
 		id SERIAL PRIMARY KEY,
 		author_id INT NOT NULL,
 		order_num BIGINT UNIQUE NOT NULL,
+        uploaded_at TIMESTAMP WITH TIME ZONE NOT NULL,
 		FOREIGN KEY (author_id) REFERENCES users(id) ON DELETE CASCADE
 	);
 	`
@@ -116,28 +125,31 @@ func (s *PostgresStorage) GetAuthorOrder(ctx context.Context, orderID int) (int,
 	return authorID, nil
 }
 
-func (s *PostgresStorage) CreateOrder(ctx context.Context, authorID int, orderID int) error {
-	_, err := s.db.ExecContext(ctx, "INSERT INTO orders (author_id, order_num) VALUES ($1, $2)", authorID, orderID)
+func (s *PostgresStorage) CreateOrder(ctx context.Context, authorID int, orderID int, uploaded_at time.Time) error {
+	_, err := s.db.ExecContext(ctx, "INSERT INTO orders (author_id, order_num, uploaded_at) VALUES ($1, $2, $3)", authorID, orderID, uploaded_at)
 	if err != nil {
 		return err
 	}
 	return nil
 }
 
-func (s *PostgresStorage) GetOrdersFromUser(ctx context.Context, userID int) ([]int, error) {
-	var orders []int
-	rows, err := s.db.QueryContext(ctx, "SELECT order_num FROM orders WHERE author_id = $1", userID)
+func (s *PostgresStorage) GetOrdersFromUser(ctx context.Context, userID int) ([]Order, error) {
+	var orders []Order
+	rows, err := s.db.QueryContext(ctx, "SELECT order_num, uploaded_at FROM orders WHERE author_id = $1", userID)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
 
 	for rows.Next() {
-		var orderNum int
-		if err := rows.Scan(&orderNum); err != nil {
+		var (
+			orderNum int
+			uploaded time.Time
+		)
+		if err := rows.Scan(&orderNum, &uploaded); err != nil {
 			return nil, err
 		}
-		orders = append(orders, orderNum)
+		orders = append(orders, Order{Number: orderNum, Uploaded: uploaded})
 	}
 
 	if err := rows.Err(); err != nil {

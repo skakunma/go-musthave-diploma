@@ -15,13 +15,6 @@ import (
 	jwtauth "github.com/skakunma/go-musthave-diploma-tpl/internal/jwt"
 )
 
-type Order struct {
-	Number   int       `json:"number"`
-	Status   string    `json:"status"`
-	Accrual  float64   `json:"accrual,omitempty"`
-	Uploaded time.Time `json:"uploaded_at"`
-}
-
 type OrderInfo struct {
 	Order   string  `json:"order"`
 	Status  string  `json:"status"`
@@ -100,8 +93,9 @@ func CreateOrder(c *gin.Context, cfg *config.Config) {
 			return
 		}
 		c.JSON(http.StatusOK, "Order is was loaded")
+		return
 	}
-	err = cfg.Store.CreateOrder(ctx, claims.UserID, idOrder)
+	err = cfg.Store.CreateOrder(ctx, claims.UserID, idOrder, time.Now())
 	if err != nil {
 		cfg.Sugar.Error(err)
 		c.JSON(http.StatusBadGateway, "Problem with storage")
@@ -128,17 +122,16 @@ func GetOrders(c *gin.Context, cfg *config.Config) {
 	// Расширяем заказы данными о начислениях
 	var responseOrders []map[string]interface{}
 	for _, order := range orders {
-		orderInfo, err := GetInfoAboutOrder(ctx, cfg, order)
+		orderInfo, err := GetInfoAboutOrder(ctx, cfg, order.Number)
 		if err != nil {
 			cfg.Sugar.Warnf("Не удалось получить информацию о заказе %s: %v", order, err)
 			continue
 		}
 
-		// Формируем ответ
 		orderData := map[string]interface{}{
-			"number":      order,
-			"uploaded_at": time.Now(),
-			"status":      "NEW", // По умолчанию, если нет данных от сервиса
+			"number":      order.Number,
+			"uploaded_at": order.Uploaded,
+			"status":      "NEW",
 		}
 		if orderInfo != nil {
 			orderData["status"] = orderInfo.Status
@@ -159,7 +152,8 @@ func GetOrders(c *gin.Context, cfg *config.Config) {
 }
 
 func GetInfoAboutOrder(ctx context.Context, cfg *config.Config, orderID int) (*OrderInfo, error) {
-	address := fmt.Sprintf("%v/api/orders/%v", cfg.FlagAddressAS, orderID)
+	address := fmt.Sprintf("%v/api/orders/%d", cfg.FlagAddressAS, orderID)
+
 	fmt.Println(address)
 	// HTTP-клиент с таймаутом
 	client := &http.Client{Timeout: 5 * time.Second}
