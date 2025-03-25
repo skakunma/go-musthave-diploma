@@ -15,6 +15,7 @@ var authPaths = map[string]struct{}{
 	"/api/user/profile":          {},
 	"/api/user/balance/withdraw": {},
 	"/api/user/balance":          {},
+	"/api/user/withdrawals":      {},
 }
 
 func AuthMiddleware(cfg *config.Config) gin.HandlerFunc {
@@ -58,6 +59,7 @@ func AuthMiddleware(cfg *config.Config) gin.HandlerFunc {
 
 			// Сохраняем информацию о пользователе в контекст
 			c.Set("user", claims)
+			c.Set("LOL", "lol")
 		}
 
 		c.Next()
