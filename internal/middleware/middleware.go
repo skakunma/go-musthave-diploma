@@ -23,7 +23,6 @@ func AuthMiddleware(cfg *config.Config) gin.HandlerFunc {
 		// Проверяем, защищен ли маршрут
 		if _, exist := authPaths[c.Request.URL.Path]; exist {
 			var jwtToken string
-
 			var err error
 
 			// Пробуем взять токен из cookie
